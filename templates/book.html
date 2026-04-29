@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Book — Hoodfadez</title>
+<style>
+  :root{--bg:#0a0a0a;--ink:#f5f1e8;--gold:#c9a24a;--muted:#8a8578;--line:rgba(245,241,232,.1);--err:#e85a4f;--ok:#5ac28a}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:'Helvetica Neue',Arial,sans-serif;min-height:100vh;padding:40px 20px}
+  .top{display:flex;justify-content:space-between;align-items:center;max-width:560px;margin:0 auto 40px}
+  .logo{font-family:Georgia,serif;font-size:20px;letter-spacing:3px;color:var(--gold);font-weight:700;text-decoration:none}
+  .logo span{color:var(--ink)}
+  .back{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);text-decoration:none}
+  .back:hover{color:var(--gold)}
+  .card{max-width:560px;margin:0 auto;background:rgba(255,255,255,.03);border:1px solid var(--line);padding:40px 32px}
+  h1{font-family:Georgia,serif;font-size:36px;margin-bottom:8px}
+  h1 em{color:var(--gold);font-style:italic}
+  .sub{color:var(--muted);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-bottom:32px}
+  label{display:block;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin:20px 0 10px}
+  input,select{width:100%;background:transparent;border:none;border-bottom:1px solid var(--line);color:var(--ink);font-size:16px;padding:12px 0;font-family:inherit;outline:none;transition:border-color .3s}
+  input:focus,select:focus{border-bottom-color:var(--gold)}
+  select{appearance:none;background:#111;padding:12px;border:1px solid var(--line)}
+  .options{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+  .opt{padding:18px;border:1px solid var(--line);text-align:center;cursor:pointer;transition:all .3s;background:rgba(255,255,255,.02)}
+  .opt:hover{border-color:var(--gold)}
+  .opt.sel{border-color:var(--gold);background:rgba(201,162,74,.1);color:var(--gold)}
+  .opt b{display:block;font-size:15px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+  .opt small{color:var(--muted);font-size:12px}
+  .opt.sel small{color:var(--gold)}
+  .date-grid,.slot-grid{display:grid;gap:8px;margin-top:8px}
+  .date-grid{grid-template-columns:repeat(7,1fr)}
+  .slot-grid{grid-template-columns:repeat(auto-fill,minmax(86px,1fr))}
+  .pill{padding:12px 6px;text-align:center;border:1px solid var(--line);font-size:13px;cursor:pointer;background:rgba(255,255,255,.02);transition:all .25s;user-select:none}
+  .pill small{display:block;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:2px}
+  .pill:hover:not(.dis){border-color:var(--gold)}
+  .pill.sel{background:var(--gold);color:var(--bg);border-color:var(--gold)}
+  .pill.sel small{color:rgba(0,0,0,.6)}
+  .pill.dis{opacity:.25;cursor:not-allowed;text-decoration:line-through}
+  .submit{margin-top:36px;width:100%;padding:18px;background:var(--gold);color:var(--bg);border:none;font-size:13px;letter-spacing:3px;text-transform:uppercase;font-weight:700;cursor:pointer;transition:opacity .3s}
+  .submit:disabled{opacity:.4;cursor:not-allowed}
+  .submit:hover:not(:disabled){opacity:.85}
+  .msg{margin-top:20px;padding:14px;font-size:13px;text-align:center;border:1px solid}
+  .msg.err{border-color:var(--err);color:var(--err);background:rgba(232,90,79,.08)}
+  .msg.ok{border-color:var(--ok);color:var(--ok);background:rgba(90,194,138,.08)}
+  .loading{text-align:center;color:var(--muted);font-size:12px;letter-spacing:2px;text-transform:uppercase;padding:20px}
+</style>
+</head>
+<body>
+<div class="top">
+  <a href="/" class="logo">HOOD<span>FADEZ</span></a>
+  <a href="/" class="back">← Back</a>
+</div>
+
+<div class="card">
+  <h1>Book a <em>Chair</em></h1>
+  <div class="sub">Daily 13:00 – 22:00</div>
+
+  <form id="form">
+    <label>Your Name</label>
+    <input type="text" id="name" required maxlength="60" autocomplete="name" />
+
+    <label>Phone Number</label>
+    <input type="tel" id="phone" required maxlength="20" autocomplete="tel" />
+
+    <label>Service</label>
+    <div class="options">
+      <div class="opt sel" data-svc="haircut" data-dur="30">
+        <b>Haircut</b><small>30 min</small>
+      </div>
+      <div class="opt" data-svc="hair_beard" data-dur="45">
+        <b>Hair + Beard</b><small>45 min</small>
+      </div>
+    </div>
+
+    <label>Pick a Day</label>
+    <div class="date-grid" id="dates"></div>
+
+    <label>Pick a Time</label>
+    <div class="slot-grid" id="slots"><div class="loading">Select a day…</div></div>
+
+    <button type="submit" class="submit" id="submit" disabled>Confirm Booking</button>
+    <div id="msg"></div>
+  </form>
+</div>
+
+<script>
+const OPEN = 13, CLOSE = 22; // 13:00–22:00
+let service = 'haircut', duration = 30;
+let selectedDate = null, selectedSlot = null;
+let bookings = [];
+
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2,'0');
+const fmtDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+// Service selector
+document.querySelectorAll('.opt').forEach(o => {
+  o.addEventListener('click', () => {
+    document.querySelectorAll('.opt').forEach(x => x.classList.remove('sel'));
+    o.classList.add('sel');
+    service = o.dataset.svc;
+    duration = parseInt(o.dataset.dur);
+    if (selectedDate) renderSlots();
+  });
+});
+
+// Build next 14 days
+function renderDates(){
+  const wrap = $('#dates'); wrap.innerHTML = '';
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for (let i=0;i<14;i++){
+    const d = new Date(); d.setDate(d.getDate()+i);
+    const el = document.createElement('div');
+    el.className = 'pill';
+    el.innerHTML = `<small>${days[d.getDay()]}</small>${d.getDate()}`;
+    el.addEventListener('click', () => {
+      document.querySelectorAll('#dates .pill').forEach(p => p.classList.remove('sel'));
+      el.classList.add('sel');
+      selectedDate = fmtDate(d);
+      selectedSlot = null;
+      renderSlots();
+    });
+    wrap.appendChild(el);
+  }
+}
+
+async function loadBookings(){
+  try {
+    const r = await fetch('/api/bookings');
+    bookings = r.ok ? await r.json() : [];
+  } catch { bookings = []; }
+}
+
+// Build slots for selected day, disable past + taken
+function renderSlots(){
+  const wrap = $('#slots'); wrap.innerHTML = '';
+  const now = new Date();
+  const dayBookings = bookings.filter(b => b.date === selectedDate);
+
+  // taken intervals (start min, end min)
+  const taken = dayBookings.map(b => {
+    const [h,m] = b.time.split(':').map(Number);
+    const start = h*60 + m;
+    return [start, start + (b.duration || 30)];
+  });
+
+  for (let h = OPEN; h < CLOSE; h++){
+    for (let m = 0; m < 60; m += 15){
+      const startMin = h*60 + m;
+      const endMin = startMin + duration;
+      if (endMin > CLOSE*60) continue;
+
+      const slotDate = new Date(selectedDate + 'T00:00:00');
+      slotDate.setHours(h, m, 0, 0);
+      const past = slotDate < now;
+      const overlap = taken.some(([s,e]) => startMin < e && endMin > s);
+      const dis = past || overlap;
+
+      const el = document.createElement('div');
+      el.className = 'pill' + (dis ? ' dis' : '');
+      el.textContent = `${pad(h)}:${pad(m)}`;
+      if (!dis){
+        el.addEventListener('click', () => {
+          document.querySelectorAll('#slots .pill').forEach(p => p.classList.remove('sel'));
+          el.classList.add('sel');
+          selectedSlot = `${pad(h)}:${pad(m)}`;
+          $('#submit').disabled = false;
+        });
+      }
+      wrap.appendChild(el);
+    }
+  }
+  if (!wrap.children.length) wrap.innerHTML = '<div class="loading">No slots available</div>';
+  $('#submit').disabled = true;
+}
+
+$('#form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const msg = $('#msg'); msg.className = ''; msg.textContent = '';
+  const name = $('#name').value.trim();
+  const phone = $('#phone').value.trim();
+  if (!name || !phone || !selectedDate || !selectedSlot){
+    msg.className = 'msg err'; msg.textContent = 'Fill everything out first.'; return;
+  }
+  if (!/^[+\d\s\-()]{6,20}$/.test(phone)){
+    msg.className = 'msg err'; msg.textContent = 'Enter a valid phone number.'; return;
+  }
+  $('#submit').disabled = true;
+  try {
+    const r = await fetch('/api/bookings', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, phone, service, duration, date: selectedDate, time: selectedSlot })
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Booking failed');
+    msg.className = 'msg ok';
+    msg.textContent = `Booked! ${selectedDate} at ${selectedSlot}. See you in the chair.`;
+    $('#form').reset();
+    selectedDate = selectedSlot = null;
+    document.querySelectorAll('.pill.sel').forEach(p => p.classList.remove('sel'));
+    await loadBookings();
+  } catch (err){
+    msg.className = 'msg err';
+    msg.textContent = err.message;
+    $('#submit').disabled = false;
+  }
+});
+
+(async () => { await loadBookings(); renderDates(); })();
+</script>
+</body>
+</html>
