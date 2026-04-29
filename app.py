@@ -34,8 +34,8 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 DB_PATH  = os.path.join(APP_ROOT, 'hoodfadez.db')
 
 # ---- VAPID keys (REPLACE with your generated keys) ----
-VAPID_PUBLIC_KEY  = os.environ.get('VAPID_PUBLIC_KEY',  'PASTE_BASE64URL_PUBLIC_KEY')
-VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', 'PASTE_BASE64URL_PRIVATE_KEY')
+VAPID_PUBLIC_KEY  = os.environ.get('VAPID_PUBLIC_KEY',  'BJBI9KiWgxMwGwGYHqPSm3qjcH-3kJJbJliSo-v36AgGQrr5Qm8NCN8HpaZme5FWya2QnoHrVXYxYs9XqWRGd1o')
+VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', 'I5ExUN1YE7ATwkai2J6kKWOGOERtlh0l83HdRkHEbP8')
 VAPID_CLAIMS = {"sub": "mailto:barber@hoodfadez.example"}
 
 OPEN_HOUR, CLOSE_HOUR = 13, 22  # 13:00–22:00
